@@ -44,6 +44,55 @@ app.get('/api/products', requireApiKey, async (req, res) => {
   }
 })
 
+app.use(express.json())
+
+app.post('/api/products', requireApiKey, async (req, res) => {
+  const { barcode, name, price } = req.body
+  if (!barcode || !isValidBarcode(barcode.trim())) {
+    return res.status(400).json({ error: 'Código de barras inválido' })
+  }
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return res.status(400).json({ error: 'Nombre inválido' })
+  }
+  const parsedPrice = parseFloat(price)
+  if (isNaN(parsedPrice) || parsedPrice < 0) {
+    return res.status(400).json({ error: 'Precio inválido' })
+  }
+  try {
+    const ref = db.collection('products').doc(barcode.trim())
+    const existing = await ref.get()
+    if (existing.exists) return res.status(409).json({ error: 'El producto ya existe' })
+    await ref.set({ name: name.trim(), price: parsedPrice })
+    res.status(201).json({ barcode: barcode.trim(), name: name.trim(), price: parsedPrice })
+  } catch (e) {
+    res.status(500).json({ error: 'Error interno' })
+  }
+})
+
+app.put('/api/products/:barcode', requireApiKey, async (req, res) => {
+  const { barcode } = req.params
+  const { name, price } = req.body
+  if (!isValidBarcode(barcode.trim())) {
+    return res.status(400).json({ error: 'Código de barras inválido' })
+  }
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return res.status(400).json({ error: 'Nombre inválido' })
+  }
+  const parsedPrice = parseFloat(price)
+  if (isNaN(parsedPrice) || parsedPrice < 0) {
+    return res.status(400).json({ error: 'Precio inválido' })
+  }
+  try {
+    const ref = db.collection('products').doc(barcode.trim())
+    const existing = await ref.get()
+    if (!existing.exists) return res.status(404).json({ error: 'Producto no encontrado' })
+    await ref.update({ name: name.trim(), price: parsedPrice })
+    res.json({ barcode: barcode.trim(), name: name.trim(), price: parsedPrice })
+  } catch (e) {
+    res.status(500).json({ error: 'Error interno' })
+  }
+})
+
 app.get('/api/products/:barcode', requireApiKey, async (req, res) => {
   const { barcode } = req.params
   if (!isValidBarcode(barcode.trim())) {

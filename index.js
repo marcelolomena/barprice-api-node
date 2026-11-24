@@ -1,6 +1,7 @@
 const express = require('express')
 const admin = require('firebase-admin')
 
+
 const app = express()
 app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', '*')

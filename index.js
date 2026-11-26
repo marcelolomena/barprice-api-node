@@ -36,9 +36,12 @@ const isValidBarcode = barcode => /^\d{4,20}$/.test(barcode)
 
 app.get('/api/products', requireApiKey, async (req, res) => {
   try {
-    const snapshot = await db.collection('products').get()
-    const products = snapshot.docs.map(doc => ({ barcode: doc.id, ...doc.data() }))
-    res.json(products)
+    const limit = parseInt(req.query.limit) || 10
+    const offset = parseInt(req.query.offset) || 0
+    const snapshot = await db.collection('products').orderBy('name').get()
+    const all = snapshot.docs.map(doc => ({ barcode: doc.id, ...doc.data() }))
+    const page = all.slice(offset, offset + limit)
+    res.json({ products: page, total: all.length, hasMore: offset + limit < all.length })
   } catch (e) {
     res.status(500).json({ error: 'Error interno' })
   }
